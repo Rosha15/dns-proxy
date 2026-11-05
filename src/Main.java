@@ -2,6 +2,7 @@ public class Main {
     public static void main(String[] args) {
 
         System.out.println("DNS Proxy ready. Rosha");
+        System.out.println("DNS Proxy ready. pull request Rosha");
         System.out.println("DNS Proxy ready. Narin");
 
     }
