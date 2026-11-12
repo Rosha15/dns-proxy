@@ -26,7 +26,7 @@ public class UpstreamClient {
             socket.receive(replyPacket);
 
             return new String(replyPacket.getData(), 0, replyPacket.getLength(), StandardCharsets.UTF_8).trim();
-        } catch (java.net.SocketTimeoutException e) {
+        } catch (SocketTimeoutException e) {
             return "SERVER_ERROR";
         } catch (Exception e) {
             return "SERVER_ERROR";
