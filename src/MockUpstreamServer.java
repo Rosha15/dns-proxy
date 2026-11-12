@@ -26,7 +26,7 @@ public class MockUpstreamServer {
                 if (domain.equals("missing.example.net")) {
                     reply = "NOT_FOUND";
                 } else {
-                    reply = "OK 198.51.100.75";
+                    reply = "OK 198.51.100.7 5";
                 }
 
                 System.out.println("Request #" + requestCount + ": " + domain + " -> " + reply);
