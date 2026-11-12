@@ -1,45 +1,66 @@
+
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.nio.charset.StandardCharsets;
+import java.io.IOException;
 
 public class MockUpstreamServer {
+
     public static void main(String[] args) {
-        int port = 5354;
-        System.out.println("Mock Upstream Server is running on port " + port + "...");
-        int requestCount = 0;
+        int counter = 0;
 
-        try (DatagramSocket socket = new DatagramSocket(port)) {
-            byte[] buffer = new byte[1024];
+        try (DatagramSocket server = new DatagramSocket(5354)) {
+
             while (true) {
-                DatagramPacket packet = new DatagramPacket(buffer, buffer.length);
-                socket.receive(packet);
+                byte[] buffer = new byte[1024];
 
-                String requestText = new String(packet.getData(), 0, packet.getLength(), StandardCharsets.UTF_8).trim();
-                requestCount++;
+                DatagramPacket request =
+                        new DatagramPacket(buffer, buffer.length);
 
-                String domain = "";
-                if (requestText.startsWith("QUERY ")) {
-                    domain = requestText.substring(6).trim();
-                }
+                server.receive(request);
+
+                String message = new String(
+                        request.getData(),
+                        request.getOffset(),
+                        request.getLength(),
+                        StandardCharsets.UTF_8
+                );
+
+                String domain = message.startsWith("QUERY ")
+                        ? message.substring(6).trim() : "";
 
                 String reply;
+
                 if (domain.equals("missing.example.net")) {
                     reply = "NOT_FOUND";
                 } else {
                     reply = "OK 198.51.100.7 5";
                 }
 
-                System.out.println("Request #" + requestCount + ": " + domain + " -> " + reply);
+                byte[] replyBytes =
+                        reply.getBytes(StandardCharsets.UTF_8);
 
-                byte[] replyData = reply.getBytes(StandardCharsets.UTF_8);
-                DatagramPacket replyPacket = new DatagramPacket(
-                        replyData, replyData.length,
-                        packet.getAddress(), packet.getPort()
+                DatagramPacket response = new DatagramPacket(
+                        replyBytes,
+                        replyBytes.length,
+                        request.getAddress(),
+                        request.getPort()
                 );
-                socket.send(replyPacket);
+
+                server.send(response);
+
+                counter++;
+
+                System.out.println(
+                        "Request #" + counter + ": "
+                                + domain + " -> " + reply
+                );
             }
-        } catch (Exception e) {
-            e.printStackTrace();
+
+        } catch (IOException error) {
+            System.err.println(
+                    "Upstream error: " + error.getMessage()
+            );
         }
     }
 }
