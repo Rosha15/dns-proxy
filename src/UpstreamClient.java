@@ -1,3 +1,4 @@
+import java.io.IOException;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.InetAddress;
@@ -15,21 +16,28 @@ public class UpstreamClient {
         try (DatagramSocket socket = new DatagramSocket()) {
             socket.setSoTimeout(config.upstreamTimeoutSec * 1000);
 
-            String message = "QUERY " + normalizedDomain;
-            byte[] data = message.getBytes(StandardCharsets.UTF_8);
-            InetAddress host = InetAddress.getByName(config.upstreamIp);
+            InetAddress serverIp = InetAddress.getByName(config.upstreamIp);
+            byte[] requestBytes = ("QUERY " + normalizedDomain)
+                    .getBytes(StandardCharsets.UTF_8);
+            DatagramPacket request = new DatagramPacket(
+                    requestBytes, requestBytes.length, serverIp, config.upstreamPort);
+            socket.send(request);
 
-            DatagramPacket packet = new DatagramPacket(data, data.length, host, config.upstreamPort);
-            socket.send(packet);
+            byte[] responseBuffer = new byte[1024];
+            DatagramPacket response = new DatagramPacket(
+                    responseBuffer, responseBuffer.length);
+            socket.receive(response);
+            if (!response.getAddress().equals(serverIp)
+                    || response.getPort() != config.upstreamPort) {
+                return "SERVER_ERROR";
+            }
 
-            byte[] buffer = new byte[1024];
-            DatagramPacket replyPacket = new DatagramPacket(buffer, buffer.length);
-            socket.receive(replyPacket);
+            return new String(response.getData(), response.getOffset(),
+                    response.getLength(), StandardCharsets.UTF_8).trim();
 
-            return new String(replyPacket.getData(), 0, replyPacket.getLength(), StandardCharsets.UTF_8).trim();
         } catch (SocketTimeoutException e) {
             return "SERVER_ERROR";
-        } catch (Exception e) {
+        } catch (IOException | IllegalArgumentException e) {
             return "SERVER_ERROR";
         }
     }
