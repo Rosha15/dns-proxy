@@ -34,27 +34,8 @@ public class Main {
                 continue;
             }
             String domain = DomainNormalizer.normalize(trimmedInput);
-
-            String response = upstreamClient.queryUpstream(domain);
-            System.out.println("Domain: " + domain);
-            System.out.println("Source: UPSTREAM");
-
-            if (response.startsWith("OK")) {
-                String[] parts = response.split("\\s+");
-                System.out.println("Status: OK");
-                System.out.println("IP: " + (parts.length > 1 ? parts[1] : "-"));
-                System.out.println("TTL: " + (parts.length > 2 ? parts[2] : "-"));
-            } else if (response.equals("NOT_FOUND")) {
-                System.out.println("Status: NOT_FOUND");
-                System.out.println("IP: -");
-                System.out.println("TTL: -");
-            } else {
-                System.out.println("Status: SERVER_ERROR");
-                System.out.println("IP: -");
-                System.out.println("TTL: -");
-            }
-            System.out.println();
-
+            DnsResponse response = upstreamClient.query(domain);
+            response.printResult();
         }
 
         scanner.close();
