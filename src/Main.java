@@ -1,15 +1,19 @@
 
 import java.util.Scanner;
+import java.util.Set;
 
 public class Main {
 
     public static void main(String[] args) {
         Config config = ConfigLoader.loadConfig("config.txt");
+        Set<String> adList = DomainListLoader.loadList(config.adListFile);
+        Set<String> sanctionList = DomainListLoader.loadList(config.sanctionListFile);
+        DnsCache cache = new DnsCache();
+        DnsResolver resolver = new DnsResolver(config, adList, sanctionList, cache);
         System.out.println("DNS Proxy ready.");
         Scanner scanner = new Scanner(System.in);
-        UpstreamClient upstreamClient = new UpstreamClient(config);
-        while (true) {
 
+        while (true) {
             System.out.print("Enter domain (or exit): ");
 
             if (!scanner.hasNextLine()) {
@@ -34,7 +38,7 @@ public class Main {
                 continue;
             }
             String domain = DomainNormalizer.normalize(trimmedInput);
-            DnsResponse response = upstreamClient.query(domain);
+            DnsResponse response = resolver.resolve(domain);
             response.printResult();
         }
 
