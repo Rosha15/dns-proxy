@@ -7,7 +7,7 @@ public class Main {
         Config config = ConfigLoader.loadConfig("config.txt");
         System.out.println("DNS Proxy ready.");
         Scanner scanner = new Scanner(System.in);
-
+        UpstreamClient upstreamClient = new UpstreamClient(config);
         while (true) {
 
             System.out.print("Enter domain (or exit): ");
@@ -22,22 +22,37 @@ public class Main {
                 System.out.println("Bye.");
                 break;
             }
+            String trimmedInput = input.trim();
 
-            String domain = DomainNormalizer.normalize(input);
-
-            if (!DomainValidator.isValidDomain(domain)) {
-
-                String displayDomain = input.trim().isEmpty()
+            if (!DomainValidator.isValidDomain(trimmedInput)) {
+                String displayDomain = trimmedInput.isEmpty()
                         ? "(empty)"
-                        : input.trim();
+                        : trimmedInput;
 
                 printInvalidInput(displayDomain);
 
                 continue;
             }
-            // DNS resolution will be implemented in later steps.
+            String domain = DomainNormalizer.normalize(trimmedInput);
+
+            String response = upstreamClient.queryUpstream(domain);
             System.out.println("Domain: " + domain);
-            System.out.println("Input accepted.");
+            System.out.println("Source: UPSTREAM");
+
+            if (response.startsWith("OK")) {
+                String[] parts = response.split("\\s+");
+                System.out.println("Status: OK");
+                System.out.println("IP: " + (parts.length > 1 ? parts[1] : "-"));
+                System.out.println("TTL: " + (parts.length > 2 ? parts[2] : "-"));
+            } else if (response.equals("NOT_FOUND")) {
+                System.out.println("Status: NOT_FOUND");
+                System.out.println("IP: -");
+                System.out.println("TTL: -");
+            } else {
+                System.out.println("Status: SERVER_ERROR");
+                System.out.println("IP: -");
+                System.out.println("TTL: -");
+            }
             System.out.println();
 
         }
