@@ -1,9 +1,66 @@
+import java.util.Scanner;
+
 public class Main {
     public static void main(String[] args) {
 
-        System.out.println("DNS Proxy ready. Rosha");
-        System.out.println("DNS Proxy ready. pull request Rosha");
-        System.out.println("DNS Proxy ready. Narin");
+        Config config = ConfigLoader.loadConfig("config.txt");
 
+        System.out.println("DNS Proxy ready.");
+        Scanner scanner = new Scanner(System.in);
+
+        while (true) {
+            System.out.print("Enter domain (or exit): ");
+            if (!scanner.hasNextLine()) {
+                break;
+            }
+            String line = scanner.nextLine().trim();
+
+            if (line.equalsIgnoreCase("exit")) {
+                System.out.println("Bye.");
+                break;
+            }
+
+
+            if (!DomainValidator.isValidDomain(line)) {
+                String displayDomain = line.isEmpty() ? "(empty)" : line;
+                System.out.println("Domain: " + displayDomain);
+                System.out.println("Source: NONE");
+                System.out.println("Status: INVALID_INPUT");
+                System.out.println("IP: -");
+                System.out.println("TTL: -");
+                System.out.println();
+                continue;
+            }
+
+
+            String normalizedName = line.toLowerCase();
+            if (normalizedName.endsWith(".") && normalizedName.length() > 1) {
+                normalizedName = normalizedName.substring(0, normalizedName.length() - 1);
+            }
+
+
+            UpstreamClient client = new UpstreamClient(config);
+            String response = client.queryUpstream(normalizedName);
+
+
+            System.out.println("Domain: " + normalizedName);
+            System.out.println("Source: UPSTREAM");
+            if (response.startsWith("OK")) {
+                String[] parts = response.split("\\s+");
+                System.out.println("Status: OK");
+                System.out.println("IP: " + (parts.length > 1 ? parts[1] : "-"));
+                System.out.println("TTL: " + (parts.length > 2 ? parts[2] : "-"));
+            } else if (response.equals("NOT_FOUND")) {
+                System.out.println("Status: NOT_FOUND");
+                System.out.println("IP: -");
+                System.out.println("TTL: -");
+            } else {
+                System.out.println("Status: SERVER_ERROR");
+                System.out.println("IP: -");
+                System.out.println("TTL: -");
+            }
+            System.out.println();
+        }
+        scanner.close();
     }
 }
