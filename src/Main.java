@@ -1,50 +1,44 @@
+
 import java.util.Scanner;
 
 public class Main {
+
     public static void main(String[] args) {
-
         Config config = ConfigLoader.loadConfig("config.txt");
-
         System.out.println("DNS Proxy ready.");
         Scanner scanner = new Scanner(System.in);
-
+        UpstreamClient upstreamClient = new UpstreamClient(config);
         while (true) {
+
             System.out.print("Enter domain (or exit): ");
+
             if (!scanner.hasNextLine()) {
                 break;
             }
-            String line = scanner.nextLine().trim();
 
-            if (line.equalsIgnoreCase("exit")) {
+            String input = scanner.nextLine();
+
+            if (input.trim().equalsIgnoreCase("exit")) {
                 System.out.println("Bye.");
                 break;
             }
+            String trimmedInput = input.trim();
 
+            if (!DomainValidator.isValidDomain(trimmedInput)) {
+                String displayDomain = trimmedInput.isEmpty()
+                        ? "(empty)"
+                        : trimmedInput;
 
-            if (!DomainValidator.isValidDomain(line)) {
-                String displayDomain = line.isEmpty() ? "(empty)" : line;
-                System.out.println("Domain: " + displayDomain);
-                System.out.println("Source: NONE");
-                System.out.println("Status: INVALID_INPUT");
-                System.out.println("IP: -");
-                System.out.println("TTL: -");
-                System.out.println();
+                printInvalidInput(displayDomain);
+
                 continue;
             }
+            String domain = DomainNormalizer.normalize(trimmedInput);
 
-
-            String normalizedName = line.toLowerCase();
-            if (normalizedName.endsWith(".") && normalizedName.length() > 1) {
-                normalizedName = normalizedName.substring(0, normalizedName.length() - 1);
-            }
-
-
-            UpstreamClient client = new UpstreamClient(config);
-            String response = client.queryUpstream(normalizedName);
-
-
-            System.out.println("Domain: " + normalizedName);
+            String response = upstreamClient.queryUpstream(domain);
+            System.out.println("Domain: " + domain);
             System.out.println("Source: UPSTREAM");
+
             if (response.startsWith("OK")) {
                 String[] parts = response.split("\\s+");
                 System.out.println("Status: OK");
@@ -60,8 +54,19 @@ public class Main {
                 System.out.println("TTL: -");
             }
             System.out.println();
-        }
-        scanner.close();
 
+        }
+
+        scanner.close();
+    }
+
+    private static void printInvalidInput(String domain) {
+
+        System.out.println("Domain: " + domain);
+        System.out.println("Source: NONE");
+        System.out.println("Status: INVALID_INPUT");
+        System.out.println("IP: -");
+        System.out.println("TTL: -");
+        System.out.println();
     }
 }
