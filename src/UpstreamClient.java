@@ -13,7 +13,9 @@ public class UpstreamClient {
     public String queryUpstream(String normalizedDomain) {
         try (DatagramSocket socket = new DatagramSocket()) {
             socket.setSoTimeout(config.upstreamTimeoutSec * 1000);
-            byte[] data = ("QUERY " + normalizedDomain).getBytes(StandardCharsets.UTF_8);
+
+            String message = "QUERY " + normalizedDomain;
+            byte[] data = message.getBytes(StandardCharsets.UTF_8);
             InetAddress host = InetAddress.getByName(config.upstreamIp);
 
             DatagramPacket packet = new DatagramPacket(data, data.length, host, config.upstreamPort);
