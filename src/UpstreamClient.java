@@ -22,8 +22,8 @@ public class UpstreamClient {
             socket.send(packet);
 
             byte[] buffer = new byte[1024];
-            DatagramPacket reply = new DatagramPacket(buffer, buffer.length);
-            socket.receive(reply);
+            DatagramPacket replyPacket = new DatagramPacket(buffer, buffer.length);
+            socket.receive(replyPacket);
 
             return new String(reply.getData(), 0, reply.getLength(), StandardCharsets.UTF_8).trim();
         } catch (java.net.SocketTimeoutException e) {
