@@ -1,4 +1,3 @@
-import java.io.IOException;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.InetAddress;
@@ -12,33 +11,38 @@ public class UpstreamClient {
         this.config = config;
     }
 
-    public String queryUpstream(String normalizedDomain) {
+    public DnsResponse query(String normalizedDomain) {
         try (DatagramSocket socket = new DatagramSocket()) {
             socket.setSoTimeout(config.upstreamTimeoutSec * 1000);
 
-            InetAddress serverIp = InetAddress.getByName(config.upstreamIp);
-            byte[] requestBytes = ("QUERY " + normalizedDomain)
-                    .getBytes(StandardCharsets.UTF_8);
-            DatagramPacket request = new DatagramPacket(
-                    requestBytes, requestBytes.length, serverIp, config.upstreamPort);
-            socket.send(request);
+            String message = "QUERY " + normalizedDomain;
+            byte[] data = message.getBytes(StandardCharsets.UTF_8);
+            InetAddress host = InetAddress.getByName(config.upstreamIp);
 
-            byte[] responseBuffer = new byte[1024];
-            DatagramPacket response = new DatagramPacket(
-                    responseBuffer, responseBuffer.length);
-            socket.receive(response);
-            if (!response.getAddress().equals(serverIp)
-                    || response.getPort() != config.upstreamPort) {
-                return "SERVER_ERROR";
+            DatagramPacket packet = new DatagramPacket(data, data.length, host, config.upstreamPort);
+            socket.send(packet);
+
+            byte[] buffer = new byte[1024];
+            DatagramPacket replyPacket = new DatagramPacket(buffer, buffer.length);
+            socket.receive(replyPacket);
+            String responseText = new String(replyPacket.getData(), 0, replyPacket.getLength(), StandardCharsets.UTF_8).trim();
+            if (responseText.startsWith("OK")) {
+                String[] parts = responseText.split("\\s+");
+                if (parts.length >= 3) {
+                    String ip = parts[1];
+                    String ttl = parts[2];
+                    return new DnsResponse(normalizedDomain, "UPSTREAM", "OK", ip, ttl);
+                }
+                return new DnsResponse(normalizedDomain, "UPSTREAM", "SERVER_ERROR", "-", "-");
+            } else if (responseText.equals("NOT_FOUND")) {
+                return new DnsResponse(normalizedDomain, "UPSTREAM", "NOT_FOUND", "-", "-");
+            } else {
+                return new DnsResponse(normalizedDomain, "UPSTREAM", "SERVER_ERROR", "-", "-");
             }
-
-            return new String(response.getData(), response.getOffset(),
-                    response.getLength(), StandardCharsets.UTF_8).trim();
-
         } catch (SocketTimeoutException e) {
-            return "SERVER_ERROR";
-        } catch (IOException | IllegalArgumentException e) {
-            return "SERVER_ERROR";
+            return new DnsResponse(normalizedDomain, "UPSTREAM", "SERVER_ERROR", "-", "-");
+        } catch (Exception e) {
+            return new DnsResponse(normalizedDomain, "UPSTREAM", "SERVER_ERROR", "-", "-");
         }
     }
 }
