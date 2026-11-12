@@ -11,7 +11,7 @@ public class UpstreamClient {
         this.config = config;
     }
 
-    public String queryUpstream(String normalizedDomain) {
+    public DnsResponse query(String normalizedDomain) {
         try (DatagramSocket socket = new DatagramSocket()) {
             socket.setSoTimeout(config.upstreamTimeoutSec * 1000);
 
@@ -25,12 +25,24 @@ public class UpstreamClient {
             byte[] buffer = new byte[1024];
             DatagramPacket replyPacket = new DatagramPacket(buffer, buffer.length);
             socket.receive(replyPacket);
-
-            return new String(replyPacket.getData(), 0, replyPacket.getLength(), StandardCharsets.UTF_8).trim();
+            String responseText = new String(replyPacket.getData(), 0, replyPacket.getLength(), StandardCharsets.UTF_8).trim();
+            if (responseText.startsWith("OK")) {
+                String[] parts = responseText.split("\\s+");
+                if (parts.length >= 3) {
+                    String ip = parts[1];
+                    String ttl = parts[2];
+                    return new DnsResponse(normalizedDomain, "UPSTREAM", "OK", ip, ttl);
+                }
+                return new DnsResponse(normalizedDomain, "UPSTREAM", "SERVER_ERROR", "-", "-");
+            } else if (responseText.equals("NOT_FOUND")) {
+                return new DnsResponse(normalizedDomain, "UPSTREAM", "NOT_FOUND", "-", "-");
+            } else {
+                return new DnsResponse(normalizedDomain, "UPSTREAM", "SERVER_ERROR", "-", "-");
+            }
         } catch (SocketTimeoutException e) {
-            return "SERVER_ERROR";
+            return new DnsResponse(normalizedDomain, "UPSTREAM", "SERVER_ERROR", "-", "-");
         } catch (Exception e) {
-            return "SERVER_ERROR";
+            return new DnsResponse(normalizedDomain, "UPSTREAM", "SERVER_ERROR", "-", "-");
         }
     }
 }
