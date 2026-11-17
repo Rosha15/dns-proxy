@@ -14,6 +14,15 @@ public final class DnsResponse {
         this.ttl = ttl;
     }
 
+    public void printResult() {
+        System.out.println("Domain: " + (domain.isEmpty() ? "(empty)" : domain));
+        System.out.println("Source: " + source);
+        System.out.println("Status: " + status);
+        System.out.println("IP: " + ip);
+        System.out.println("TTL: " + ttl);
+        System.out.println();
+    }
+
     public static DnsResponse ok(String domain, String source, String ip, int ttl) {
         return new DnsResponse(domain, source, "OK", ip, String.valueOf(ttl));
     }

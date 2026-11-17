@@ -8,7 +8,6 @@ public class DnsResolver {
     private final DnsCache cache;
     private final UpstreamClient upstreamClient;
 
-    // Compatible with the constructor used by the current Main.java.
     public DnsResolver(Config config, Set<String> adList,
                        Set<String> sanctionList, DnsCache cache) {
         this.config = Objects.requireNonNull(config, "config");
@@ -21,14 +20,12 @@ public class DnsResolver {
     public DnsResponse resolve(String input) {
         String rawDomain = input == null ? "" : input.trim();
 
-        // Validate and normalize here as well; direct callers should be safe.
         if (!DomainValidator.isValidDomain(rawDomain)) {
             String displayDomain = rawDomain.isEmpty() ? "(empty)" : rawDomain;
             return new DnsResponse(displayDomain, "NONE", "INVALID_INPUT", "-", "-");
         }
         String domain = DomainNormalizer.normalize(rawDomain);
 
-        // Lists must always take precedence over cache and upstream.
         if (isInList(domain, adList)) {
             return new DnsResponse(domain, "AD_BLOCK", "OK",
                     config.sinkholeIp, String.valueOf(config.localTtl));
@@ -51,19 +48,18 @@ public class DnsResolver {
 
         DnsResponse upstreamResponse = upstreamClient.query(domain);
 
-        // A NOT_FOUND or SERVER_ERROR response is never cached.
-        if (!"OK".equals(upstreamResponse.status)) {
+
+        if (!"OK".equals(upstreamResponse.getStatus())) {
             return upstreamResponse;
         }
 
-        // Reject malformed responses instead of returning OK by mistake.
         try {
-            int ttl = Integer.parseInt(upstreamResponse.ttl);
-            if (ttl < 0 || !UpstreamClient.isValidIpv4(upstreamResponse.ip)) {
+            int ttl = Integer.parseInt(upstreamResponse.getTtl());
+            if (ttl < 0 || !UpstreamClient.isValidIpv4(upstreamResponse.getIp())) {
                 return serverError(domain);
             }
             if (config.cacheEnabled && ttl > 0) {
-                cache.put(domain, upstreamResponse.ip, ttl);
+                cache.put(domain, upstreamResponse.getIp(), ttl);
             }
         } catch (NumberFormatException | NullPointerException ex) {
             return serverError(domain);

@@ -39,7 +39,7 @@ public class Main {
             }
             String domain = DomainNormalizer.normalize(trimmedInput);
             DnsResponse response = resolver.resolve(domain);
-            response.print();
+            response.printResult();
         }
 
         scanner.close();
