@@ -20,6 +20,7 @@ public class Main {
                 break;
             }
 
+
             String input = scanner.nextLine();
 
             if (input.trim().equalsIgnoreCase("exit")) {
