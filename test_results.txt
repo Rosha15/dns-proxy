@@ -1,0 +1,220 @@
+
+==================================================
+Smart DNS Proxy - Phase 1 Test Results (T1 - T13)
+==================================================
+
+
+DNS Proxy ready.
+
+
+--- Test T1: Ad-list Exact Match ---
+Enter domain (or exit): ads.example.com
+Domain: ads.example.com
+Source: AD_BLOCK
+Status: OK
+IP: 0.0.0.0
+TTL: 60
+
+Server Log: (No UDP request sent)
+Result: PASS
+
+--- Test T2: Ad-list Subdomain Match ---
+Enter domain (or exit): sub.ads.example.com
+Domain: sub.ads.example.com
+Source: AD_BLOCK
+Status: OK
+IP: 0.0.0.0
+TTL: 60
+
+Server Log: (No UDP request sent)
+Result: PASS
+
+--- Test T3: Domain Normalization ---
+Enter domain (or exit): ADS.Example.COM.
+Domain: ads.example.com
+Source: AD_BLOCK
+Status: OK
+IP: 0.0.0.0
+TTL: 60
+
+Server Log: (No UDP request sent)
+Result: PASS
+
+--- Test T4: Non-matching Domain (Boundary Check) ---
+Enter domain (or exit): notads.example.com
+Domain: notads.example.com
+Source: UPSTREAM
+Status: OK
+IP: 198.51.100.7
+TTL: 5
+
+Server Log: Request #1: notads.example.com -> OK 198.51.100.7 5
+Result: PASS
+
+--- Test T5: Sanction-list Match ---
+Enter domain (or exit): service.example.org
+Domain: service.example.org
+Source: SANCTION
+Status: OK
+IP: 192.0.2.10
+TTL: 60
+
+Server Log: (No UDP request sent)
+Result: PASS
+
+--- Test T6: Priority Conflict (Ad-list over Sanction-list) ---
+Enter domain (or exit): both.example.com
+Domain: both.example.com
+Source: AD_BLOCK
+Status: OK
+IP: 0.0.0.0
+TTL: 60
+
+Server Log: (No UDP request sent)
+Result: PASS
+
+--- Test T7: Upstream Query (First Time) ---
+Enter domain (or exit): normal.example.net
+Domain: normal.example.net
+Source: UPSTREAM
+Status: OK
+IP: 198.51.100.7
+TTL: 5
+
+Server Log: Request #2: normal.example.net -> OK 198.51.100.7 5
+Result: PASS
+
+--- Test T8: Cache Hit (Within 5 seconds) ---
+Enter domain (or exit): normal.example.net
+Domain: normal.example.net
+Source: CACHE
+Status: OK
+IP: 198.51.100.7
+TTL: 4
+
+Server Log: (No new request sent to server)
+Result: PASS
+
+--- Test T9: Cache Expiration (After 6+ seconds) ---
+Enter domain (or exit): normal.example.net
+Domain: normal.example.net
+Source: UPSTREAM
+Status: OK
+IP: 198.51.100.7
+TTL: 5
+
+Server Log: Request #3: normal.example.net -> OK 198.51.100.7 5
+Result: PASS
+
+--- Test T10: Upstream NOT_FOUND (Twice) ---
+Enter domain (or exit): missing.example.net
+Domain: missing.example.net
+Source: UPSTREAM
+Status: NOT_FOUND
+IP: -
+TTL: -
+
+Enter domain (or exit): missing.example.net
+Domain: missing.example.net
+Source: UPSTREAM
+Status: NOT_FOUND
+IP: -
+TTL: -
+
+Server Log: Request #4: missing.example.net -> NOT_FOUND
+Request #5: missing.example.net -> NOT_FOUND
+Result: PASS
+
+--- Test T11: Upstream Server Stopped (Timeout) & Ad-list Priority ---
+//Action: Stopped MockUpstreamServer
+Enter domain (or exit): other.example.net
+Domain: other.example.net
+Source: UPSTREAM
+Status: SERVER_ERROR
+IP: -
+TTL: -
+
+Enter domain (or exit): ads.example.com
+Domain: ads.example.com
+Source: AD_BLOCK
+Status: OK
+IP: 0.0.0.0
+TTL: 60
+
+Reault: PASS
+
+--- Test T12: Invalid Inputs & Exit ---
+//Input 1: (empty line)
+Enter domain (or exit): 
+Domain: (empty)
+Source: NONE
+Status: INVALID_INPUT
+IP: -
+TTL: -
+
+Enter domain (or exit): bad domain.com
+Domain: bad domain.com
+Source: NONE
+Status: INVALID_INPUT
+IP: -
+TTL: -
+
+Enter domain (or exit): EXIT
+Bye.
+
+Process finished with exit code 0
+Result: PASS
+
+MOCKUPSTREAM TERMINAL OUTPUT:
+Request #1: notads.example.com -> OK 198.51.100.7 5
+Request #2: normal.example.net -> OK 198.51.100.7 5
+Request #3: normal.example.net -> OK 198.51.100.7 5
+Request #4: missing.example.net -> NOT_FOUND
+Request #5: missing.example.net -> NOT_FOUND
+
+Process finished with exit code 130
+
+
+--- Test T13: Config Modification (sinkhole_ip=10.0.0.1, cache_enabled=false) ---
+//Action: Updated config.txt and restarted proxy & server
+DNS Proxy ready.
+Enter domain (or exit): ads.example.com
+Domain: ads.example.com
+Source: AD_BLOCK
+Status: OK
+IP: 10.0.0.1
+TTL: 60
+
+
+Enter domain (or exit): other.example.net
+Domain: other.example.net
+Source: UPSTREAM
+Status: OK
+IP: 198.51.100.7
+TTL: 5
+
+Enter domain (or exit): other.example.net
+Domain: other.example.net
+Source: UPSTREAM
+Status: OK
+IP: 198.51.100.7
+TTL: 5
+
+
+Enter domain (or exit): exit
+Bye.
+
+Process finished with exit code 0
+
+
+MOCKUPSTREAM TERMINAL OUTPUT:
+Request #1: other.example.net -> OK 198.51.100.7 5
+Request #2: other.example.net -> OK 198.51.100.7 5
+
+
+
+
+
+
+
+
