@@ -121,7 +121,8 @@ Status: NOT_FOUND
 IP: -
 TTL: -
 
-Server Log: Request #4: missing.example.net -> NOT_FOUND
+Server Log:
+Request #4: missing.example.net -> NOT_FOUND
 Request #5: missing.example.net -> NOT_FOUND
 Result: PASS
 
@@ -141,7 +142,7 @@ Status: OK
 IP: 0.0.0.0
 TTL: 60
 
-Reault: PASS
+Result: PASS
 
 --- Test T12: Invalid Inputs & Exit ---
 //Input 1: (empty line)
@@ -186,15 +187,15 @@ IP: 10.0.0.1
 TTL: 60
 
 
-Enter domain (or exit): other.example.net
-Domain: other.example.net
+Enter domain (or exit): normal.example.net
+Domain: normal.example.net
 Source: UPSTREAM
 Status: OK
 IP: 198.51.100.7
 TTL: 5
 
-Enter domain (or exit): other.example.net
-Domain: other.example.net
+Enter domain (or exit): normal.example.net
+Domain: normal.example.net
 Source: UPSTREAM
 Status: OK
 IP: 198.51.100.7
@@ -208,8 +209,8 @@ Process finished with exit code 0
 
 
 MOCKUPSTREAM TERMINAL OUTPUT:
-Request #1: other.example.net -> OK 198.51.100.7 5
-Request #2: other.example.net -> OK 198.51.100.7 5
+Request #1: normal.example.net -> OK 198.51.100.7 5
+Request #2: normal.example.net -> OK 198.51.100.7 5
 
 
 
