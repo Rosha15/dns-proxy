@@ -1,3 +1,4 @@
+import java.util.Objects;
 import java.util.Set;
 
 public class DnsResolver {
@@ -7,45 +8,76 @@ public class DnsResolver {
     private final DnsCache cache;
     private final UpstreamClient upstreamClient;
 
-    public DnsResolver(Config config, Set<String> adList, Set<String> sanctionList, DnsCache cache) {
-        this.config = config;
-        this.adList = adList;
-        this.sanctionList = sanctionList;
-        this.cache = cache;
+    public DnsResolver(Config config, Set<String> adList,
+                       Set<String> sanctionList, DnsCache cache) {
+        this.config = Objects.requireNonNull(config, "config");
+        this.adList = Objects.requireNonNull(adList, "adList");
+        this.sanctionList = Objects.requireNonNull(sanctionList, "sanctionList");
+        this.cache = Objects.requireNonNull(cache, "cache");
         this.upstreamClient = new UpstreamClient(config);
     }
 
-    public DnsResponse resolve(String domain) {
-        for (String entry : adList) {
-            if (DomainMatcher.matches(domain, entry)) {
-                return new DnsResponse(domain, "AD_BLOCK", "OK", config.sinkholeIp, String.valueOf(config.localTtl));
-            }
-        }
+    public DnsResponse resolve(String input) {
+        String rawDomain = input == null ? "" : input.trim();
 
-        for (String entry : sanctionList) {
-            if (DomainMatcher.matches(domain, entry)) {
-                return new DnsResponse(domain, "SANCTION", "OK", config.proxyIp, String.valueOf(config.localTtl));
-            }
+        if (!DomainValidator.isValidDomain(rawDomain)) {
+            String displayDomain = rawDomain.isEmpty() ? "(empty)" : rawDomain;
+            return new DnsResponse(displayDomain, "NONE", "INVALID_INPUT", "-", "-");
+        }
+        String domain = DomainNormalizer.normalize(rawDomain);
+
+        if (isInList(domain, adList)) {
+            return new DnsResponse(domain, "AD_BLOCK", "OK",
+                    config.sinkholeIp, String.valueOf(config.localTtl));
+        }
+        if (isInList(domain, sanctionList)) {
+            return new DnsResponse(domain, "SANCTION", "OK",
+                    config.proxyIp, String.valueOf(config.localTtl));
         }
 
         if (config.cacheEnabled) {
             CacheEntry cachedEntry = cache.get(domain);
             if (cachedEntry != null) {
-                return new DnsResponse(domain, "CACHE", "OK", cachedEntry.ip, String.valueOf(cachedEntry.getRemainingTtl()));
+                int remainingTtl = cachedEntry.getRemainingTtl();
+                if (remainingTtl >= 1) {
+                    return new DnsResponse(domain, "CACHE", "OK",
+                            cachedEntry.ip, String.valueOf(remainingTtl));
+                }
             }
         }
 
         DnsResponse upstreamResponse = upstreamClient.query(domain);
 
-        if (upstreamResponse.status.equals("OK") && !upstreamResponse.ttl.equals("-")) {
-            try {
-                int ttlValue = Integer.parseInt(upstreamResponse.ttl);
-                if (config.cacheEnabled && ttlValue > 0) {
-                    cache.put(domain, upstreamResponse.ip, ttlValue);
-                }
-            } catch (NumberFormatException ignored) {}
+
+        if (!"OK".equals(upstreamResponse.getStatus())) {
+            return upstreamResponse;
+        }
+
+        try {
+            int ttl = Integer.parseInt(upstreamResponse.getTtl());
+            if (ttl < 0 || !UpstreamClient.isValidIpv4(upstreamResponse.getIp())) {
+                return serverError(domain);
+            }
+            if (config.cacheEnabled && ttl > 0) {
+                cache.put(domain, upstreamResponse.getIp(), ttl);
+            }
+        } catch (NumberFormatException | NullPointerException ex) {
+            return serverError(domain);
         }
 
         return upstreamResponse;
+    }
+
+    private static boolean isInList(String domain, Set<String> entries) {
+        for (String entry : entries) {
+            if (DomainMatcher.matches(domain, entry)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private static DnsResponse serverError(String domain) {
+        return new DnsResponse(domain, "UPSTREAM", "SERVER_ERROR", "-", "-");
     }
 }
