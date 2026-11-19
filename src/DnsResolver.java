@@ -3,18 +3,25 @@ import java.util.Set;
 
 public class DnsResolver {
     private final Config config;
-    private final Set<String> adList;
-    private final Set<String> sanctionList;
+    private Set<String> adList;
+    private Set<String> sanctionList;
     private final DnsCache cache;
     private final UpstreamClient upstreamClient;
 
     public DnsResolver(Config config, Set<String> adList,
                        Set<String> sanctionList, DnsCache cache) {
         this.config = Objects.requireNonNull(config, "config");
-        this.adList = Objects.requireNonNull(adList, "adList");
-        this.sanctionList = Objects.requireNonNull(sanctionList, "sanctionList");
+        this.adList = Set.copyOf(Objects.requireNonNull(adList, "adList"));
+        this.sanctionList = Set.copyOf(Objects.requireNonNull(sanctionList, "sanctionList"));
         this.cache = Objects.requireNonNull(cache, "cache");
         this.upstreamClient = new UpstreamClient(config);
+    }
+
+    public void reloadLists(Set<String> newAds, Set<String> newSanctions) {
+        Set<String> checkedAds = Set.copyOf(Objects.requireNonNull(newAds, "newAds"));
+        Set<String> checkedSanctions = Set.copyOf(Objects.requireNonNull(newSanctions, "newSanctions"));
+        this.adList = checkedAds;
+        this.sanctionList = checkedSanctions;
     }
 
     public DnsResponse resolve(String input) {
@@ -47,7 +54,6 @@ public class DnsResolver {
         }
 
         DnsResponse upstreamResponse = upstreamClient.query(domain);
-
 
         if (!"OK".equals(upstreamResponse.getStatus())) {
             return upstreamResponse;
