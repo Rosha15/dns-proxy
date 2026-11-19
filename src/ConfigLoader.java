@@ -42,6 +42,7 @@ public class ConfigLoader {
             config.upstreamTimeoutSec = optionalInt(values, "upstream_timeout_sec", 2, 1,
                     Integer.MAX_VALUE / 1000);
             config.localTtl = optionalInt(values, "local_ttl", 60, 0, Integer.MAX_VALUE);
+            config.cacheMaxEntries = optionalInt(values, "cache_max_entries", 100, 1, Integer.MAX_VALUE);
             String cache = values.getOrDefault("cache_enabled", "true");
             if (!cache.equals("true") && !cache.equals("false")) {
                 throw new IllegalArgumentException("cache_enabled must be true or false");
