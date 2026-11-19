@@ -8,4 +8,5 @@ public class Config {
     public String adListFile = "ad_list.txt";
     public String sanctionListFile = "sanction_list.txt";
     public boolean cacheEnabled = true;
+    public int cacheMaxEntries = 100;
 }
