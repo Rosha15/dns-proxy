@@ -7,7 +7,7 @@ public class Main {
         Config config = ConfigLoader.loadConfig("config.txt");
         Set<String> adList = DomainListLoader.loadList(config.adListFile);
         Set<String> sanctionList = DomainListLoader.loadList(config.sanctionListFile);
-        DnsCache cache = new DnsCache();
+        DnsCache cache = new DnsCache(config.cacheMaxEntries);
         DnsResolver resolver = new DnsResolver(config, adList, sanctionList, cache);
         RequestStats stats = new RequestStats();
 
@@ -28,8 +28,11 @@ public class Main {
                     System.out.println(stats.format());
                     continue;
                 }
+                if (input.equalsIgnoreCase("cache")) {
+                    cache.printCache();
+                    continue;
+                }
                 if (input.equalsIgnoreCase("reload")) {
-                    // Load BOTH lists before changing the resolver: no half-applied update.
                     try {
                         Set<String> newAds = DomainListLoader.readList(config.adListFile);
                         Set<String> newSanctions = DomainListLoader.readList(config.sanctionListFile);
