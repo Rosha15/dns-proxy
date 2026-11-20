@@ -1,0 +1,11 @@
+2026-11-20 15:23:32 | google.com | UPSTREAM | OK | 216.239.38.120 | 1
+2026-11-20 15:23:53 | google.com | UPSTREAM | OK | 216.239.38.120 | 1
+2026-11-20 15:23:56 | google.com | UPSTREAM | OK | 216.239.38.120 | 1
+2026-11-20 15:24:32 | this-domain-definitely-does-not-exist-98765.com | UPSTREAM | NOT_FOUND | - | -
+2026-11-20 15:25:02 | ads.example.com | AD_BLOCK | OK | 0.0.0.0 | 60
+2026-11-20 15:26:13 | youtube.com | UPSTREAM | OK | 10.10.34.35 | 1
+2026-11-20 15:27:04 | example.com | UPSTREAM | OK | 172.66.147.243 | 300
+2026-11-20 15:27:06 | example.com | CACHE | OK | 172.66.147.243 | 299
+2026-11-20 16:22:42 | example.com | UPSTREAM | OK | 172.66.147.243 | 300
+2026-11-20 16:23:05 | example.com | UPSTREAM | OK | 172.66.147.243 | 277
+2026-11-20 16:29:17 | example.com | UPSTREAM | SERVER_ERROR | - | -
