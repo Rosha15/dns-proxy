@@ -2,7 +2,7 @@ import java.io.IOException;
 import java.util.Objects;
 import java.util.Set;
 
-/** Central processing pipeline: validation -> ad -> sanction -> cache -> upstream. */
+
 public class DnsResolver {
     private final Config config;
     private volatile DomainLists lists;

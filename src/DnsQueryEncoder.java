@@ -3,7 +3,7 @@ import java.io.DataOutputStream;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 
-//Team member 1: convert an ASCII domain name into a binary DNS A question
+
 public final class DnsQueryEncoder {
     private DnsQueryEncoder() {}
     static byte[] encodeQuery(String domain, int id) throws IOException {

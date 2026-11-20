@@ -1,7 +1,7 @@
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 
-//Team member 2: safely parse a DNS A response (including compressed names).
+
 public final class DnsResponseDecoder {
     private DnsResponseDecoder() {}
     static DnsResponse decodeResponse(String domain, byte[] data, int len, int expectedId) {
