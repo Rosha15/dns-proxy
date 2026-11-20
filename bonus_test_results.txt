@@ -1,0 +1,39 @@
+DNS Proxy automated tests (2026-11-20)
+PASS | T1-T13 / base shell and number of responses | 13
+PASS | T1-T12 / source priorities, normalization, cache and NOT_FOUND | ['AD_BLOCK', 'AD_BLOCK', 'AD_BLOCK', 'UPSTREAM', 'SANCTION', 'AD_BLOCK', 'UPSTREAM', 'CACHE', 'UPSTREAM', 'UPSTREAM', 'UPSTREAM', 'NONE', 'NONE']
+PASS | T3 / name normalization
+PASS | T7-T9 / TTL and expiration
+PASS | T10 / two misses not cached
+PASS | T12 / bad inputs
+PASS | B1 / stats command includes errors
+PASS | B4 / one log per domain and no stats/exit
+PASS | B4 / six columns
+PASS | T1-T10 / no UDP for policy/cache | queries=5
+PASS | T13 / new IP and cache disabled
+PASS | T13 / cache command empty while disabled
+PASS | B3 / cache command displays valid records
+PASS | B5 / FIFO evicts A despite a cache hit on A
+PASS | B5 / ordered cache lists B then C, not A
+PASS | B2 / reload applies new ads before cached entry
+PASS | B2 / prints confirmation
+PASS | B1 / control commands do not count
+PASS | B4 / control commands not logged
+PASS | B4 / append persists across runs
+PASS | B4 / invalid input with vertical bar does not corrupt columns
+PASS | B2 / reload failure nonfatal, old policy retained
+PASS | T11 / timeout and recovery
+PASS | B6 / binary DNS flow compiles and runs
+PASS | B6 / policy lists still higher priority
+PASS | B6 / IPv4 A with actual TTL and cache hit
+PASS | B6 / NXDOMAIN and NOERROR without A -> NOT_FOUND
+PASS | B6 / SERVFAIL, spoofed ID, TC, malformed rejected
+PASS | B6 / zero TTL never cached
+PASS | B6 / compressed name with CNAME followed by A
+PASS | B6 / unsigned 32-bit TTL retained in displayed response
+PASS | B6 / no queries for ad or sanction
+PASS | B4 / real DNS responses logged
+PASS | B6 / cache can be disabled
+PASS | B5 / invalid capacity fails clearly at startup
+PASS | B6 / invalid boolean fails clearly at startup
+PASS | Java MockUpstreamServer / text UDP interoperability
+Total passed: 37/37

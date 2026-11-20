@@ -8,4 +8,8 @@ public class Config {
     public String adListFile = "ad_list.txt";
     public String sanctionListFile = "sanction_list.txt";
     public boolean cacheEnabled = true;
+
+    // Optional bonus setting leaving them absent keeps mandatory behaviour.
+    public int cacheMaxEntries = Integer.MAX_VALUE; // B5: unlimited by default
+    public boolean realDnsEnabled = false;          // B6: text UDP by default
 }
