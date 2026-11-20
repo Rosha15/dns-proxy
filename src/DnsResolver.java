@@ -57,7 +57,6 @@ public class DnsResolver {
             if (ttl < 0 || !UpstreamClient.isValidIpv4(upstream.getIp())) {
                 return DnsResponse.serverError(domain);
             }
-            // In DNS wire format TTL is unsigned 32 bits; cache capacity is int-based.
             if (config.cacheEnabled && ttl > 0) {
                 cache.put(domain, upstream.getIp(), (int) Math.min(ttl, Integer.MAX_VALUE));
             }

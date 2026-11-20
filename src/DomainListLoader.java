@@ -17,7 +17,6 @@ public class DomainListLoader {
         }
     }
 
-    //B2 reload: nonfatal, so old lists remain on disk/read error
     public static Set<String> readList(String filename) throws IOException {
         Path path = Path.of(filename);
         if (!Files.isRegularFile(path)) {

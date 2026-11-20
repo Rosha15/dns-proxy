@@ -1,4 +1,3 @@
-// B1. Total includes every domain request, including invalid input and NOT_FOUND
 public class RequestStats {
     private long total, adBlock, sanction, cache, upstream, errors;
 

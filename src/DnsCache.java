@@ -4,7 +4,6 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
-//B3: cache inspection; B5: FIFO capacity limit
 public class DnsCache {
     private final Map<String, CacheEntry> cache = new LinkedHashMap<>();
     private final int maxEntries;
@@ -21,7 +20,6 @@ public class DnsCache {
     public void put(String domain, String ip, int ttl) {
         if (ttl <= 0) return;
         purgeExpired();
-        // A refreshed record is treated as a new insertion.
         cache.remove(domain);
         while (cache.size() >= maxEntries) {
             Iterator<String> iterator = cache.keySet().iterator();

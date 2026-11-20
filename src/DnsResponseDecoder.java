@@ -49,7 +49,6 @@ public final class DnsResponseDecoder {
                 }
                 offset += dataLength;
             }
-            // NOERROR with no IPv4 A answer (including CNAME-only responses).
             return DnsResponse.notFound(domain);
         } catch (IOException | RuntimeException malformed) {
             return DnsResponse.serverError(domain);
@@ -67,7 +66,6 @@ public final class DnsResponseDecoder {
                 | (data[pos + 3] & 255L);
     }
 
-    //Reads an RFC 1035 name and handles compression pointers safely
     private static NamePosition parseName(byte[] data, int length, int offset) throws IOException {
         int at = offset;
         int next = -1;

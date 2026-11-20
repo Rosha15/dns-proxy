@@ -6,7 +6,7 @@ import java.nio.file.StandardOpenOption;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 
-//B4: write one structured line for each domain request (not control commands)
+
 public class RequestLogger {
     private static final DateTimeFormatter FORMAT =
             DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
@@ -27,7 +27,6 @@ public class RequestLogger {
     }
 
     private static String sanitize(String value) {
-        // Even invalid domain inputs cannot corrupt the six-column log format.
         return value.replace('|', '_').replace('\r', '_').replace('\n', '_');
     }
 }

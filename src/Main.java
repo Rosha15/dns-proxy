@@ -58,7 +58,6 @@ public class Main {
                 try {
                     logger.log(response);
                 } catch (IOException | RuntimeException error) {
-                    // B4: a log failure must not stop DNS resolution.
                     System.err.println("Log error: " + error.getMessage());
                 }
             }
