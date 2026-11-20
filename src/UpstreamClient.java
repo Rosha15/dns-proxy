@@ -25,7 +25,6 @@ public class UpstreamClient {
             DatagramPacket replyPacket = new DatagramPacket(buffer, buffer.length);
             socket.receive(replyPacket);
 
-            // Do not accept a packet from another address/port as the response.
             if (!replyPacket.getAddress().equals(serverAddress)
                     || replyPacket.getPort() != config.upstreamPort) {
                 return serverError(normalizedDomain);
@@ -36,7 +35,6 @@ public class UpstreamClient {
             return parseReply(normalizedDomain, reply);
 
         } catch (IOException | IllegalArgumentException ex) {
-            // Includes timeout, unreachable upstream and invalid socket parameters.
             return serverError(normalizedDomain);
         }
     }

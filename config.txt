@@ -7,3 +7,8 @@ local_ttl=60
 ad_list_file=ad_list.txt
 sanction_list_file=sanction_list.txt
 cache_enabled=true
+# Optional bonus features
+# Maximum number of distinct records in the cache (FIFO); omit for unlimited
+# cache_max_entries=2
+# Enable binary A-record DNS queries to a real DNS server rather than text UDP
+real_dns_enabled=false

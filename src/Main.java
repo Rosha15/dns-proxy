@@ -1,58 +1,66 @@
-
+import java.io.IOException;
+import java.nio.file.Path;
+import java.util.List;
 import java.util.Scanner;
 import java.util.Set;
 
 public class Main {
-
     public static void main(String[] args) {
         Config config = ConfigLoader.loadConfig("config.txt");
-        Set<String> adList = DomainListLoader.loadList(config.adListFile);
-        Set<String> sanctionList = DomainListLoader.loadList(config.sanctionListFile);
-        DnsCache cache = new DnsCache();
-        DnsResolver resolver = new DnsResolver(config, adList, sanctionList, cache);
+        Set<String> ads = DomainListLoader.loadList(config.adListFile);
+        Set<String> sanctions = DomainListLoader.loadList(config.sanctionListFile);
+        DnsCache cache = new DnsCache(config.cacheMaxEntries);
+        DnsResolver resolver = new DnsResolver(config, ads, sanctions, cache);
+        RequestStats stats = new RequestStats();
+        RequestLogger logger = new RequestLogger(Path.of("log.txt"));
+
         System.out.println("DNS Proxy ready.");
-        Scanner scanner = new Scanner(System.in);
+        try (Scanner scanner = new Scanner(System.in)) {
+            while (true) {
+                System.out.print("Enter domain (or exit): ");
+                if (!scanner.hasNextLine()) break;
+                String input = scanner.nextLine().trim();
 
-        while (true) {
-            System.out.print("Enter domain (or exit): ");
+                if (input.equalsIgnoreCase("exit")) {
+                    System.out.println("Bye.");
+                    break;
+                }
+                if (input.equalsIgnoreCase("stats")) {
+                    System.out.println(stats.summary());
+                    continue;
+                }
+                if (input.equalsIgnoreCase("reload")) {
+                    try {
+                        resolver.reloadLists();
+                        System.out.println("Lists reloaded.");
+                    } catch (IOException | RuntimeException error) {
+                        System.err.println("Reload error: " + error.getMessage());
+                    }
+                    continue;
+                }
+                if (input.equalsIgnoreCase("cache")) {
+                    List<DnsCache.CacheSnapshot> entries = config.cacheEnabled
+                            ? cache.snapshot() : List.of();
+                    if (entries.isEmpty()) {
+                        System.out.println("Cache is empty.");
+                    } else {
+                        for (DnsCache.CacheSnapshot entry : entries) {
+                            System.out.println(entry.domain + " | " + entry.ip
+                                    + " | " + entry.remainingTtl);
+                        }
+                    }
+                    continue;
+                }
 
-            if (!scanner.hasNextLine()) {
-                break;
+                DnsResponse response = resolver.resolve(input);
+                response.printResult();
+                stats.record(response);
+                try {
+                    logger.log(response);
+                } catch (IOException | RuntimeException error) {
+                    System.err.println("Log error: " + error.getMessage());
+                }
             }
-
-
-            String input = scanner.nextLine();
-
-            if (input.trim().equalsIgnoreCase("exit")) {
-                System.out.println("Bye.");
-                break;
-            }
-            String trimmedInput = input.trim();
-
-            if (!DomainValidator.isValidDomain(trimmedInput)) {
-                String displayDomain = trimmedInput.isEmpty()
-                        ? "(empty)"
-                        : trimmedInput;
-
-                printInvalidInput(displayDomain);
-
-                continue;
-            }
-            String domain = DomainNormalizer.normalize(trimmedInput);
-            DnsResponse response = resolver.resolve(domain);
-            response.printResult();
         }
-
-        scanner.close();
-    }
-
-    private static void printInvalidInput(String domain) {
-
-        System.out.println("Domain: " + domain);
-        System.out.println("Source: NONE");
-        System.out.println("Status: INVALID_INPUT");
-        System.out.println("IP: -");
-        System.out.println("TTL: -");
-        System.out.println();
     }
 }

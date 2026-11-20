@@ -1,83 +1,86 @@
+import java.io.IOException;
 import java.util.Objects;
 import java.util.Set;
 
+
 public class DnsResolver {
     private final Config config;
-    private final Set<String> adList;
-    private final Set<String> sanctionList;
+    private volatile DomainLists lists;
     private final DnsCache cache;
     private final UpstreamClient upstreamClient;
+    private final RealDnsClient realDnsClient;
 
     public DnsResolver(Config config, Set<String> adList,
                        Set<String> sanctionList, DnsCache cache) {
         this.config = Objects.requireNonNull(config, "config");
-        this.adList = Objects.requireNonNull(adList, "adList");
-        this.sanctionList = Objects.requireNonNull(sanctionList, "sanctionList");
+        this.lists = new DomainLists(adList, sanctionList);
         this.cache = Objects.requireNonNull(cache, "cache");
         this.upstreamClient = new UpstreamClient(config);
+        this.realDnsClient = new RealDnsClient(config);
+    }
+
+    /** B2: load both new lists first; atomically replace them only on success. */
+    public void reloadLists() throws IOException {
+        Set<String> ad = DomainListLoader.readList(config.adListFile);
+        Set<String> sanctions = DomainListLoader.readList(config.sanctionListFile);
+        this.lists = new DomainLists(ad, sanctions);
     }
 
     public DnsResponse resolve(String input) {
-        String rawDomain = input == null ? "" : input.trim();
-
-        if (!DomainValidator.isValidDomain(rawDomain)) {
-            String displayDomain = rawDomain.isEmpty() ? "(empty)" : rawDomain;
-            return new DnsResponse(displayDomain, "NONE", "INVALID_INPUT", "-", "-");
+        String raw = input == null ? "" : input.trim();
+        if (!DomainValidator.isValidDomain(raw)) {
+            return DnsResponse.invalidInput(raw.isEmpty() ? "(empty)" : raw);
         }
-        String domain = DomainNormalizer.normalize(rawDomain);
+        String domain = DomainNormalizer.normalize(raw);
+        DomainLists currentLists = lists;
 
-        if (isInList(domain, adList)) {
-            return new DnsResponse(domain, "AD_BLOCK", "OK",
-                    config.sinkholeIp, String.valueOf(config.localTtl));
+        if (isInList(domain, currentLists.ads)) {
+            return DnsResponse.ok(domain, "AD_BLOCK", config.sinkholeIp, config.localTtl);
         }
-        if (isInList(domain, sanctionList)) {
-            return new DnsResponse(domain, "SANCTION", "OK",
-                    config.proxyIp, String.valueOf(config.localTtl));
+        if (isInList(domain, currentLists.sanctions)) {
+            return DnsResponse.ok(domain, "SANCTION", config.proxyIp, config.localTtl);
         }
-
         if (config.cacheEnabled) {
-            CacheEntry cachedEntry = cache.get(domain);
-            if (cachedEntry != null) {
-                int remainingTtl = cachedEntry.getRemainingTtl();
-                if (remainingTtl >= 1) {
-                    return new DnsResponse(domain, "CACHE", "OK",
-                            cachedEntry.ip, String.valueOf(remainingTtl));
-                }
+            CacheEntry cached = cache.get(domain);
+            if (cached != null) {
+                int remaining = cached.getRemainingTtl();
+                if (remaining >= 1) return DnsResponse.ok(domain, "CACHE", cached.ip, remaining);
             }
         }
 
-        DnsResponse upstreamResponse = upstreamClient.query(domain);
-
-
-        if (!"OK".equals(upstreamResponse.getStatus())) {
-            return upstreamResponse;
-        }
+        DnsResponse upstream = config.realDnsEnabled
+                ? realDnsClient.query(domain) : upstreamClient.query(domain);
+        if (!"OK".equals(upstream.getStatus())) return upstream;
 
         try {
-            int ttl = Integer.parseInt(upstreamResponse.getTtl());
-            if (ttl < 0 || !UpstreamClient.isValidIpv4(upstreamResponse.getIp())) {
-                return serverError(domain);
+            long ttl = Long.parseLong(upstream.getTtl());
+            if (ttl < 0 || !UpstreamClient.isValidIpv4(upstream.getIp())) {
+                return DnsResponse.serverError(domain);
             }
             if (config.cacheEnabled && ttl > 0) {
-                cache.put(domain, upstreamResponse.getIp(), ttl);
+                cache.put(domain, upstream.getIp(), (int) Math.min(ttl, Integer.MAX_VALUE));
             }
-        } catch (NumberFormatException | NullPointerException ex) {
-            return serverError(domain);
+        } catch (NumberFormatException e) {
+            return DnsResponse.serverError(domain);
         }
-
-        return upstreamResponse;
+        return upstream;
     }
+
+    public DnsCache getCache() { return cache; }
 
     private static boolean isInList(String domain, Set<String> entries) {
         for (String entry : entries) {
-            if (DomainMatcher.matches(domain, entry)) {
-                return true;
-            }
+            if (DomainMatcher.matches(domain, entry)) return true;
         }
         return false;
     }
 
-    private static DnsResponse serverError(String domain) {
-        return new DnsResponse(domain, "UPSTREAM", "SERVER_ERROR", "-", "-");
+    private static final class DomainLists {
+        final Set<String> ads;
+        final Set<String> sanctions;
+        DomainLists(Set<String> ads, Set<String> sanctions) {
+            this.ads = Set.copyOf(Objects.requireNonNull(ads));
+            this.sanctions = Set.copyOf(Objects.requireNonNull(sanctions));
+        }
     }
 }
