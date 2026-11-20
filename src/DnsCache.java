@@ -1,66 +1,69 @@
+import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 
+//B3: cache inspection; B5: FIFO capacity limit
 public class DnsCache {
     private final Map<String, CacheEntry> cache = new LinkedHashMap<>();
     private final int maxEntries;
 
+    public DnsCache() {
+        this(Integer.MAX_VALUE);
+    }
+
     public DnsCache(int maxEntries) {
+        if (maxEntries < 1) throw new IllegalArgumentException("maxEntries must be positive");
         this.maxEntries = maxEntries;
     }
 
     public void put(String domain, String ip, int ttl) {
-        if (ttl <= 0 || maxEntries <= 0) {
-            return;
+        if (ttl <= 0) return;
+        purgeExpired();
+        // A refreshed record is treated as a new insertion.
+        cache.remove(domain);
+        while (cache.size() >= maxEntries) {
+            Iterator<String> iterator = cache.keySet().iterator();
+            if (!iterator.hasNext()) break;
+            iterator.next();
+            iterator.remove();
         }
-
-        cleanExpiredEntries();
-
-        if (cache.containsKey(domain)) {
-            cache.remove(domain);
-            cache.put(domain, new CacheEntry(ip, ttl));
-            return;
-        }
-
-        if (cache.size() >= maxEntries) {
-            String oldestKey = cache.keySet().iterator().next();
-            cache.remove(oldestKey);
-        }
-
         cache.put(domain, new CacheEntry(ip, ttl));
     }
 
     public CacheEntry get(String domain) {
-        if (!cache.containsKey(domain)) {
-            return null;
-        }
         CacheEntry entry = cache.get(domain);
-        if (entry.getRemainingTtl() >= 1) {
-            return entry;
-        } else {
-            cache.remove(domain);
-            return null;
-        }
+        if (entry == null) return null;
+        if (entry.getRemainingTtl() >= 1) return entry;
+        cache.remove(domain);
+        return null;
     }
 
-    private void cleanExpiredEntries() {
+    public List<CacheSnapshot> snapshot() {
+        purgeExpired();
+        List<CacheSnapshot> result = new ArrayList<>();
+        for (Map.Entry<String, CacheEntry> item : cache.entrySet()) {
+            int ttl = item.getValue().getRemainingTtl();
+            if (ttl >= 1) {
+                result.add(new CacheSnapshot(item.getKey(), item.getValue().ip, ttl));
+            }
+        }
+        return result;
+    }
+
+    private void purgeExpired() {
         cache.entrySet().removeIf(entry -> entry.getValue().getRemainingTtl() < 1);
     }
 
-    public void printCache() {
-        cleanExpiredEntries();
-
-        if (cache.isEmpty()) {
-            System.out.println("Cache is empty.");
-            System.out.println();
-            return;
+    public static final class CacheSnapshot {
+        public final String domain;
+        public final String ip;
+        public final int remainingTtl;
+        CacheSnapshot(String domain, String ip, int remainingTtl) {
+            this.domain = domain;
+            this.ip = ip;
+            this.remainingTtl = remainingTtl;
         }
-
-        for (Map.Entry<String, CacheEntry> entry : cache.entrySet()) {
-            String domain = entry.getKey();
-            CacheEntry data = entry.getValue();
-            System.out.println(domain + " | " + data.ip + " | " + data.getRemainingTtl());
-        }
-        System.out.println();
     }
 }

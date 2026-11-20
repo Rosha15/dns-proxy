@@ -16,9 +16,7 @@ public class ConfigLoader {
             Map<String, String> values = new HashMap<>();
             for (String raw : Files.readAllLines(path, StandardCharsets.UTF_8)) {
                 String line = raw.trim();
-                if (line.isEmpty() || line.startsWith("#")) {
-                    continue;
-                }
+                if (line.isEmpty() || line.startsWith("#")) continue;
                 int equal = line.indexOf('=');
                 if (equal <= 0 || equal == line.length() - 1) {
                     throw new IllegalArgumentException("Expected key=value: " + line);
@@ -38,16 +36,15 @@ public class ConfigLoader {
             config.proxyIp = requiredIpv4(values, "proxy_ip");
             config.adListFile = required(values, "ad_list_file");
             config.sanctionListFile = required(values, "sanction_list_file");
-
             config.upstreamTimeoutSec = optionalInt(values, "upstream_timeout_sec", 2, 1,
                     Integer.MAX_VALUE / 1000);
             config.localTtl = optionalInt(values, "local_ttl", 60, 0, Integer.MAX_VALUE);
-            config.cacheMaxEntries = optionalInt(values, "cache_max_entries", 100, 1, Integer.MAX_VALUE);
-            String cache = values.getOrDefault("cache_enabled", "true");
-            if (!cache.equals("true") && !cache.equals("false")) {
-                throw new IllegalArgumentException("cache_enabled must be true or false");
-            }
-            config.cacheEnabled = Boolean.parseBoolean(cache);
+            config.cacheEnabled = optionalBool(values, "cache_enabled", true);
+
+            // Optional bonus features (B5 and B6)
+            config.cacheMaxEntries = optionalInt(values, "cache_max_entries",
+                    Integer.MAX_VALUE, 1, Integer.MAX_VALUE);
+            config.realDnsEnabled = optionalBool(values, "real_dns_enabled", false);
             return config;
 
         } catch (IOException | RuntimeException e) {
@@ -74,8 +71,7 @@ public class ConfigLoader {
     }
 
     private static int requiredInt(Map<String, String> values, String key, int min, int max) {
-        String value = required(values, key);
-        return parseInt(value, key, min, max);
+        return parseInt(required(values, key), key, min, max);
     }
 
     private static int optionalInt(Map<String, String> values, String key, int fallback,
@@ -95,5 +91,14 @@ public class ConfigLoader {
             throw new IllegalArgumentException(key + " must be between " + min + " and " + max);
         }
         return result;
+    }
+
+    private static boolean optionalBool(Map<String, String> values, String key, boolean fallback) {
+        String value = values.get(key);
+        if (value == null) return fallback;
+        if (!value.equals("true") && !value.equals("false")) {
+            throw new IllegalArgumentException(key + " must be true or false");
+        }
+        return Boolean.parseBoolean(value);
     }
 }
